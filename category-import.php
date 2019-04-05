@@ -10,7 +10,7 @@ $modx->initialize('web');
 
 // загружаем файл импорта из csv
 //$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_1c.csv'; // имя файла
-$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/import/my_1c.csv'; // имя файла
+$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_1c.csv'; // имя файла
 $delimeter = '|'; // разделитель
 
 $handle = fopen($file, "r");
@@ -132,8 +132,44 @@ if (empty($resources)) {
         }
     }
 } else {
+    
+    // иначе проверяем на совпадение uid и обновляем ресурсы
+    while (($csv = fgetcsv($handle, 0, $delimeter)) !== false) {
+        $rows++;
 
-    // иначе проверяем на совпадение uid
+        // определяем в переменные столбцы из файла
+        $cid = $csv[0];            // id ресурса - не используется
+        $name = $csv[1];            // Название ресурса
+        $level = $csv[2];           // Уровень каталога
+        $GoodsIn = $csv[3];         // Идентификатор "является ли каталог" хранилищем товаров
+        $GUIDExt = $csv[4];         // GUIDExt - идентификатор ресурса
+        $GUIDExtParent = $csv[5];   // GUIDExtParent - родительский ресурс
+
+        // если первый столбец число и не пусто имя, начинаем работать
+        if ($cid != 'ID' and  !empty($name)) {
+
+            // ищем совпадения UID
+            $result = $modx->runSnippet('pdoResources', array(
+                'parents' => 0,
+                'limit' => 0,
+                'level' => 10,
+                'returnIds' => 1,
+                'includeTVs' => 'guidext',
+                'where' => '{"guidext:LIKE":"' . $GUIDExt . '"}',
+            ));
+
+            if (empty($result)) {
+                
+                echo 'В файле csv обнаружен новый ресурс ' . $name . '<br>';
+            } else {
+
+                echo 'В файле csv отсутствуют новые ресурсы' . '<br>';
+            }
+        
+        }
+
+        $updated++;
+    }
 }
 
 fclose($handle);
