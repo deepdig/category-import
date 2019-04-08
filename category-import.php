@@ -98,11 +98,11 @@ if (empty($resources)) {
     }
 
     //запуск второго этапа - размещение по родительским каталогам
-    sleep(10); // пауза 10 сек
+    sleep(2); // пауза 2 сек
 
-    $modx->cacheManager->clearCache(); // очистка кеша    
-    // получаем имеющиеся ресурсы
-    
+    $modx->cacheManager->clearCache(); // очистка кеша 
+
+    // получаем имеющиеся ресурсы    
     $resources = $modx->getIterator('modResource', $where);
 
     // Цикл по имеющимся ресурсам
@@ -138,7 +138,7 @@ if (empty($resources)) {
         $rows++;
 
         // определяем в переменные столбцы из файла
-        $cid = $csv[0];            // id ресурса - не используется
+        $cid = $csv[0];             // id ресурса - не используется
         $name = $csv[1];            // Название ресурса
         $level = $csv[2];           // Уровень каталога
         $GoodsIn = $csv[3];         // Идентификатор "является ли каталог" хранилищем товаров
@@ -161,11 +161,75 @@ if (empty($resources)) {
             if (empty($result)) {
                 
                 echo 'В файле csv обнаружен новый ресурс ' . $name . '<br>';
+                // если в csv найдена новая позиция, создаем из нее ресурс
+                // назначаем ресурсу нужный шаблон
+                if ($GoodsIn == 0) {
+                    $template = 4;
+                } elseif ($GoodsIn == 1) {
+                    $template = 5;
+                }
+                $response = $modx->runProcessor('resource/create', array(
+                    'template' => $template,
+                    'isfolder' => 1,
+                    'published' => 1,
+                    'pagetitle' => $name,
+                    'parent' => $mainParent,
+                ));
+    
+                if ($response->isError()) {
+                    return $modx->error->failure($response->getMessage());
+                }
+                $modx->cacheManager->clearCache();
+    
+                $newId = $response->response['object']['id'];
+    
+                $page = $modx->getObject('modResource', $newId);
+                // псевдоним
+                $page->set('alias', $newId . '-' . translit($name));
+                // запись в доп.поле
+                $page->setTVValue('level', $level);
+                $page->setTVValue('guidext', $GUIDExt);
+                $page->setTVValue('guidextparent', $GUIDExtParent);
+                $page->setTVValue('goodsIn', $GoodsIn);
+                if ($GoodsIn == 1) {
+                    $page->set('class_key', 'msCategory');
+                }
+                $page->save();
+
+                // получаем имеющиеся ресурсы  для назначения родительского ресурса  
+                $resources = $modx->getIterator('modResource', $where);
+
+                // Цикл по имеющимся ресурсам
+                foreach ($resources as $id => $res) { // $id - id ресурса
+
+                    $uid = $res->getTVValue('guidext'); // UID - уникальный идентификатор из tv-поля
+                    $parent = $res->getTVValue('guidextparent'); // уникальный идентификатор родительского каталога
+                    $minishop = $res->setTVValue('goodsIn'); // идентификатор ресурса магазина
+
+                    //echo $uid .', '. $parent . '<br>';
+
+                    // если имеется поле с указанием родительского каталога то..
+                    if ($parent) {
+                        // ищем родительский каталог..
+                        $result = $modx->runSnippet('pdoResources', array(
+                            'parents' => 0,
+                            'limit' => 0,
+                            'level' => 10,
+                            'returnIds' => 1,
+                            'includeTVs' => 'guidext,guidextparent',
+                            'where' => '{"guidext:LIKE":"' . $parent . '"}',
+                        ));
+                        //echo $result . '<br>';
+                        // и перемещаем туда дочерний ресурс
+                        $res->set('parent', $result);
+                        $res->save();
+                    }
+                }
+
             } else {
 
                 echo 'В файле csv отсутствуют новые ресурсы' . '<br>';
             }
-        
         }
 
         $updated++;
