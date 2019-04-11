@@ -105,9 +105,8 @@ while (($csv = fgetcsv($handle, 0, $delimeter)) !== false) {
             $page->setTVValue('guidext', $productID);
             $page->setTVValue('guidextparent', $productParent);
             $page->setTVValue('product-also', $productIDAlso);
-            if ($GoodsIn == 1) {
-                $page->set('class_key', 'msCategory');
-            }
+            // указываем что это товар minishop
+            $page->set('class_key', 'msProduct');
             $page->save();
         
         // иначе проверяем имеющийся ресурс на изменение позиции в каталоге
