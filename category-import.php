@@ -16,7 +16,7 @@ $delimeter = '|'; // разделитель
 $handle = fopen($file, "r");
 $rows = $updated = 0;
 
-$mainParent = 8472; // Основной контейнер каталога
+$mainParent = 2; // Основной контейнер каталога
 
 // транслит
 function translit($s)

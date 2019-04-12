@@ -2,6 +2,10 @@
 
 set_time_limit(1440);
 
+ini_set("display_errors",1);
+error_reporting(E_ALL);
+header("Content-Type: text/html; charset=utf-8");
+
 define('MODX_API_MODE', true);
 //require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
@@ -27,14 +31,15 @@ function translit($s)
 //$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_1c.csv'; // имя файла
 $file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_last'; // имя файла
 $delimeter = '||'; // разделитель
+$enclosure = '^'; // разделитель строк
 
 $handle = fopen($file, "r");
 $rows = $updated = 0;
 
-$mainParent = 8472; // Основной контейнер каталога
+$mainParent = 2; // Основной контейнер каталога
 
 //цикл для сбора данных по уровням
-while (($csv = fgetcsv($handle, 0, $delimeter)) !== false) {
+while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
     $rows++;
 
     // определяем в переменные столбцы из файла    
