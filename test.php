@@ -14,9 +14,10 @@ $modx->initialize('web');
 
 // загружаем файл импорта из csv
 //$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_last.csv'; // имя файла
-$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_last.csv'; // имя файла
+$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_full.csv'; // имя файла
 $delimeter = '||'; // разделитель
 $delimeterEnd = '^'; // разделитель строк
+$mainParent = 2; // Основной контейнер каталога
 
 $handle = fopen($file, "r");
 $rows = $updated = 0;
@@ -25,6 +26,19 @@ $rows = $updated = 0;
 while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
     
     $rows++;
+
+    // определяем в переменные столбцы из файла    
+    $productName = $csv[0];            // Название ресурса (Names)
+    $productContent = $csv[1];         // Описание товара (content)
+    $productRemains = $csv[2];         // Остатки (remains)
+    $productPrice = $csv[3];           // цена (price)
+    $productNew = $csv[4];             // для формирования блока "Новинки" (new)
+    $productTopSale = $csv[5];         // для формирования блока "Лидеры продаж" (topSale)
+    $productProfitPrice = $csv[6];     // для формирования блока "Выгодная цена" (profit_price)
+    $productOrder = $csv[7];           // для индентификации товара "Под заказ" (order)
+    $productID = $csv[8];              // идентификатор ресурса (GUIDExt)
+    $productParent = $csv[9];          // родительский ресурс (GUIDExtParent)
+    $productIDAlso = $csv[9];          // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)
     
     if ($productName != 'Names') {
 
@@ -38,13 +52,33 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
             'where' => '{"guidext:LIKE":"' . $productID . '"}',
         ));
 
+        // если ресурс не создан, то создаем
         if (empty($result)) {
 
-            echo '$result - пустой';
+            echo 'ресурс отсутствует в каталоге<br>';
+
+            // ищем родительский каталог для данного товара
+            $parentID = $modx->runSnippet('pdoResources', array(
+                'parents' => $mainParent,
+                'limit' => 0,
+                'level' => 10,
+                'returnIds' => 1,
+                'includeTVs' => 'guidext',
+                'where' => '{"guidext:LIKE":"' . $productParent . '"}',
+            ));
+
+            // проверка на наличие родительского ресурса
+            if (empty($parentID)) {
+
+                echo 'Родительский ресурс отсутствует<br>';
+            } else {
+
+                echo $parentID;
+            }
 
         } else {
 
-            echo $result;
+            echo $result . '<br>';
 
         }
     }
