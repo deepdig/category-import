@@ -30,7 +30,7 @@ function translit($s)
 // загружаем файл импорта из csv
 //$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_1c.csv'; // имя файла
 $file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_last'; // имя файла
-$delimeter = '||'; // разделитель
+$delimeter = '|'; // разделитель
 $enclosure = '^'; // разделитель строк
 
 $handle = fopen($file, "r");
@@ -53,7 +53,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
     $productOrder = $csv[7];           // для индентификации товара "Под заказ" (order)
     $productID = $csv[8];              // идентификатор ресурса (GUIDExt)
     $productParent = $csv[9];          // родительский ресурс (GUIDExtParent)
-    $productIDAlso = $csv[9];          // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)    
+    $productIDAlso = $csv[10];          // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)    
 
     // если первый столбец не содержит служебного названия, начинаем работать
     if ($productName != 'Names') {

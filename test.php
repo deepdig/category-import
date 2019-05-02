@@ -14,8 +14,8 @@ $modx->initialize('web');
 
 // загружаем файл импорта из csv
 //$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_last.csv'; // имя файла
-$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_full.csv'; // имя файла
-$delimeter = '||'; // разделитель
+$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/test_tovar.csv'; // имя файла
+$delimeter = '|'; // разделитель
 $delimeterEnd = '^'; // разделитель строк
 $mainParent = 2; // Основной контейнер каталога
 
@@ -38,7 +38,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
     $productOrder = $csv[7];           // для индентификации товара "Под заказ" (order)
     $productID = $csv[8];              // идентификатор ресурса (GUIDExt)
     $productParent = $csv[9];          // родительский ресурс (GUIDExtParent)
-    $productIDAlso = $csv[9];          // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)
+    $productIDAlso = $csv[10];          // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)
     
     if ($productName != 'Names') {
 
@@ -56,6 +56,17 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
         if (empty($result)) {
 
             echo 'ресурс отсутствует в каталоге<br>';
+            echo 'Название продукта: '   . $productName . '<br>';
+            echo 'Описание продукта: '   . $productContent . '<br>';
+            echo 'Остатки: '             . $productRemains . '<br>';
+            echo 'Цена: '                . $productPrice . '<br>';
+            echo 'Новинка?: '            . $productNew . '<br>';
+            echo 'Лидер продаж?: '       . $productTopSale . '<br>';
+            echo 'Выгодная цена?: '      . $productProfitPrice . '<br>';
+            echo 'Под заказ?: '          . $productOrder . '<br>';
+            echo 'ID продукта: '         . $productID . '<br>';
+            echo 'Родительский ресурс: ' . $productParent . '<br>';
+            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';
 
             // ищем родительский каталог для данного товара
             $parentID = $modx->runSnippet('pdoResources', array(
@@ -73,7 +84,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
                 echo 'Родительский ресурс отсутствует<br>';
             } else {
 
-                echo $parentID;
+                echo ' ID родительского ресурса: '. $parentID . '<br><br>';
             }
 
         } else {
