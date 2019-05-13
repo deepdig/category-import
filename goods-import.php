@@ -1,6 +1,7 @@
 <?php
 
-set_time_limit(1440);
+set_time_limit(7200); // два часа лимит времени
+ini_set('memory_limit', '2048M'); // лимит памяти
 
 ini_set("display_errors",1);
 error_reporting(E_ALL);
@@ -29,7 +30,7 @@ function translit($s)
 
 // загружаем файл импорта из csv
 //$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_last.csv'; // имя файла
-$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/test_tovar.csv'; // имя файла
+$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_5.csv'; // имя файла
 $delimeter = '|'; // разделитель
 $delimeterEnd = '^'; // разделитель строк
 $mainParent = 2; // Основной контейнер каталога
@@ -68,8 +69,8 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
         ));
 
         // если ресурс не создан, то создаем
-        if (empty($result)) {
-
+        if (empty($result) and $productParent != '00000000-0000-0000-0000-000000000000') {
+            /*
             echo 'ресурс отсутствует в каталоге<br>';
             echo 'Название продукта: '   . $productName . '<br>';
             echo 'Описание продукта: '   . $productContent . '<br>';
@@ -81,8 +82,8 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
             echo 'Под заказ?: '          . $productOrder . '<br>';
             echo 'ID продукта: '         . $productID . '<br>';
             echo 'Родительский ресурс: ' . $productParent . '<br>';
-            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';
-
+            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';            
+            */
             // ищем родительский каталог для данного товара
             $parentID = $modx->runSnippet('pdoResources', array(
                 'parents' => $mainParent,
@@ -101,6 +102,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
 
                 echo ' ID родительского ресурса: '. $parentID . '<br><br>';
             }
+            
 
             $response = $modx->runProcessor('resource/create', array(
                 'template' => 6, // шаблон с товаром
@@ -109,42 +111,37 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
                 'parent' => $parentID,
                 'pagetitle' => $productName,
                 'content' => $productContent,
+                // основные параметры msProduct
+                'class_key' => 'msProduct', // указываем что это товар minishop
+                'show_in_tree' => 0, // не показывать товар в древе ресурсов
+                'price' => $productPrice, // Цена
+                'new' => $productNew, // Новый товар
+                'popular' => $productTopSale, // Популярный товар 
+                // устанавливаем TV поля
+                'tv1' =>  $productID,          // TV - guidext
+                'tv2' =>  $productParent,      // TV - guidextparent
+                'tv5' =>  $productRemains,     // TV - product-remains
+                'tv6' =>  $productPrice,       // TV - product-price
+                'tv7' =>  $productNew,         // TV - product-new
+                'tv8' =>  $productTopSale,     // TV - product-topSale
+                'tv9' =>  $productProfitPrice, // TV - product-profitPrice
+                'tv10' =>  $productOrder,      // TV - product-order
+                'tv11' =>  $productIDAlso, // TV - product-also
             ));
 
             if ($response->isError()) {
                 return $modx->error->failure($response->getMessage());
             }
-            $modx->cacheManager->clearCache();
-
-            $newId = $response->response['object']['id'];
-            
-            $page = $modx->getObject('modResource', $newId);
-            // псевдоним
-            $page->set('alias', $newId . '-' . translit($productName));
-            // запись в доп.поле
-            $page->setTVValue('product-remains',  $productRemains);
-            $page->setTVValue('product-price', $productPrice);
-            $page->setTVValue('product-new', $productNew);
-            $page->setTVValue('product-topSale', $productTopSale);
-            $page->setTVValue('product-profitPrice', $productProfitPrice);
-            $page->setTVValue('product-order', $productOrder);
-            $page->setTVValue('guidext', $productID);
-            $page->setTVValue('guidextparent', $productParent);
-            $page->setTVValue('product-also', $productIDAlso);            
-            $page->set('class_key', 'msProduct'); // указываем что это товар minishop
-            $page->set('show_in_tree', 0); // не показывать товар в древе ресурсов
-            $page->save();
-
-            //получаем товар
-            $product = $modx->getObject('msProduct', $newId);
-            $product->set('price', $productPrice); // записываем цену
-            $product->save();
-                       
+            $modx->cacheManager->clearCache(); // очищаем кэш                       
         
-        // если ресурс уже есть в каталоге проверяем товар на изменение позиции    
-        } else {
+           
+        } elseif (empty($result) and $productParent == '00000000-0000-0000-0000-000000000000') { // если родитель не указан
 
-            echo 'ресурс ' . $result . ' уже есть в каталоге <br>';
+            echo 'ресурс <b>' . $productName . '</b> не имеет родительского каталога <br>';
+            
+        } else { // если ресурс уже есть в каталоге проверяем товар на изменение позиции 
+
+            echo 'ресурс ID:' . $result . ' <b>' . $productName . '</b> - уже есть в каталоге <br>';
 
         }
     }
