@@ -12,7 +12,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
 $modx = new modX();
 $modx->initialize('web');
 
-// транслит
+// функция транслитерации
 function translit($s)
 {
     $s = (string)$s; // преобразуем в строковое значение
@@ -28,18 +28,18 @@ function translit($s)
 }
 
 // загружаем файл импорта из csv
-//$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_1c.csv'; // имя файла
-$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_last'; // имя файла
+//$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_last.csv'; // имя файла
+$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/test_tovar.csv'; // имя файла
 $delimeter = '|'; // разделитель
-$enclosure = '^'; // разделитель строк
+$delimeterEnd = '^'; // разделитель строк
+$mainParent = 2; // Основной контейнер каталога
 
 $handle = fopen($file, "r");
 $rows = $updated = 0;
 
-$mainParent = 2; // Основной контейнер каталога
-
-//цикл для сбора данных по уровням
-while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
+//цикл для сбора данных из csv
+while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
+    
     $rows++;
 
     // определяем в переменные столбцы из файла    
@@ -53,9 +53,8 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
     $productOrder = $csv[7];           // для индентификации товара "Под заказ" (order)
     $productID = $csv[8];              // идентификатор ресурса (GUIDExt)
     $productParent = $csv[9];          // родительский ресурс (GUIDExtParent)
-    $productIDAlso = $csv[10];          // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)    
-
-    // если первый столбец не содержит служебного названия, начинаем работать
+    $productIDAlso = $csv[10];          // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)
+    
     if ($productName != 'Names') {
 
         // проверяем наличие ресурса в каталоге
@@ -71,6 +70,19 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
         // если ресурс не создан, то создаем
         if (empty($result)) {
 
+            echo 'ресурс отсутствует в каталоге<br>';
+            echo 'Название продукта: '   . $productName . '<br>';
+            echo 'Описание продукта: '   . $productContent . '<br>';
+            echo 'Остатки: '             . $productRemains . '<br>';
+            echo 'Цена: '                . $productPrice . '<br>';
+            echo 'Новинка?: '            . $productNew . '<br>';
+            echo 'Лидер продаж?: '       . $productTopSale . '<br>';
+            echo 'Выгодная цена?: '      . $productProfitPrice . '<br>';
+            echo 'Под заказ?: '          . $productOrder . '<br>';
+            echo 'ID продукта: '         . $productID . '<br>';
+            echo 'Родительский ресурс: ' . $productParent . '<br>';
+            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';
+
             // ищем родительский каталог для данного товара
             $parentID = $modx->runSnippet('pdoResources', array(
                 'parents' => $mainParent,
@@ -81,10 +93,19 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
                 'where' => '{"guidext:LIKE":"' . $productParent . '"}',
             ));
 
+            // проверка на наличие родительского ресурса
+            if (empty($parentID)) {
+
+                echo 'Родительский ресурс отсутствует<br>';
+            } else {
+
+                echo ' ID родительского ресурса: '. $parentID . '<br><br>';
+            }
+
             $response = $modx->runProcessor('resource/create', array(
                 'template' => 6, // шаблон с товаром
-                'isfolder' => 0,
-                'published' => 1,
+                'isfolder' => 0, // это не контейнер
+                'published' => 1, // опубликован
                 'parent' => $parentID,
                 'pagetitle' => $productName,
                 'content' => $productContent,
@@ -96,10 +117,10 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
             $modx->cacheManager->clearCache();
 
             $newId = $response->response['object']['id'];
-
+            
             $page = $modx->getObject('modResource', $newId);
             // псевдоним
-            $page->set('alias', $newId . '-' . translit($name));
+            $page->set('alias', $newId . '-' . translit($productName));
             // запись в доп.поле
             $page->setTVValue('product-remains',  $productRemains);
             $page->setTVValue('product-price', $productPrice);
@@ -109,15 +130,22 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $enclosure)) !== false) {
             $page->setTVValue('product-order', $productOrder);
             $page->setTVValue('guidext', $productID);
             $page->setTVValue('guidextparent', $productParent);
-            $page->setTVValue('product-also', $productIDAlso);
-            // указываем что это товар minishop
-            $page->set('class_key', 'msProduct');
+            $page->setTVValue('product-also', $productIDAlso);            
+            $page->set('class_key', 'msProduct'); // указываем что это товар minishop
+            $page->set('show_in_tree', 0); // не показывать товар в древе ресурсов
             $page->save();
+
+            //получаем товар
+            $product = $modx->getObject('msProduct', $newId);
+            $product->set('price', $productPrice); // записываем цену
+            $product->save();
+                       
         
-        // иначе проверяем имеющийся ресурс на изменение позиции в каталоге
+        // если ресурс уже есть в каталоге проверяем товар на изменение позиции    
         } else {
 
-            // здесь будет код
+            echo 'ресурс ' . $result . ' уже есть в каталоге <br>';
+
         }
     }
 
@@ -129,6 +157,6 @@ fclose($handle);
 
 echo '<pre>';
 echo "\nImport complete in " . number_format(microtime(true) - $modx->startTime, 7) . " s\n";
-echo "\nTotal rows:	$rows\n";
-echo "Updated:	$updated\n";
+echo "\nTotal rows: $rows\n";
+echo "Updated:  $updated\n";
 echo '</pre>';
