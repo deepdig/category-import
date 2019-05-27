@@ -49,7 +49,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
             'level' => 10,
             'returnIds' => 1,
             'includeTVs' => 'guidext',
-            'where' => '{"guidext:LIKE":"' . $productID . '"}',
+            'where' => '{"guidext:LIKE":"' . $productID . '", "OR:pagetitle:LIKE":"' . $productName . '"}',
         ));
 
         // если ресурс не создан, то создаем

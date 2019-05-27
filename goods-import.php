@@ -1,6 +1,6 @@
 <?php
 
-set_time_limit(7200); // два часа лимит времени
+set_time_limit(36000); // 10 часов лимит времени
 ini_set('memory_limit', '2048M'); // лимит памяти
 
 ini_set("display_errors",1);
@@ -13,7 +13,17 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
 $modx = new modX();
 $modx->initialize('web');
 
-// функция транслитерации
+// Функция записи массива в лог
+function object2file($value, $filename)
+{
+	$str_value = "\n".serialize($value);
+	
+	$f = fopen($filename, 'w');
+	fwrite($f, $str_value);
+	fclose($f);
+}
+
+// Функция транслитерации
 function translit($s)
 {
     $s = (string)$s; // преобразуем в строковое значение
@@ -27,6 +37,7 @@ function translit($s)
     $s = str_replace(" ", "-", $s); // заменяем пробелы знаком минус
     return $s; // возвращаем результат
 }
+
 
 // загружаем файл импорта из csv
 //$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_last.csv'; // имя файла
@@ -47,7 +58,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
     $productName = $csv[0];            // Название ресурса (Names)
     $productContent = $csv[1];         // Описание товара (content)
     $productRemains = $csv[2];         // Остатки (remains)
-    $productPrice = $csv[3];           // цена (price)
+    $productPrice = preg_replace("/[^x\d|*\.]/", "", $csv[3]);           // цена (price)
     $productNew = $csv[4];             // для формирования блока "Новинки" (new)
     $productTopSale = $csv[5];         // для формирования блока "Лидеры продаж" (topSale)
     $productProfitPrice = $csv[6];     // для формирования блока "Выгодная цена" (profit_price)
@@ -58,20 +69,21 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
     
     if ($productName != 'Names') {
 
-        // проверяем наличие ресурса в каталоге
+        // проверяем наличие ресурса в каталоге        
         $result = $modx->runSnippet('pdoResources', array(
             'parents' => $mainParent,
             'limit' => 0,
             'level' => 10,
             'returnIds' => 1,
             'includeTVs' => 'guidext',
-            'where' => '{"guidext:LIKE":"' . $productID . '"}',
+            'where' => '{"guidext:LIKE":"' . $productID . '", "OR:pagetitle:LIKE":"' . $productName . '"}',
         ));
+        
 
         // если ресурс не создан, то создаем
         if (empty($result) and $productParent != '00000000-0000-0000-0000-000000000000') {
+        //if ($productParent != '00000000-0000-0000-0000-000000000000') {            
             /*
-            echo 'ресурс отсутствует в каталоге<br>';
             echo 'Название продукта: '   . $productName . '<br>';
             echo 'Описание продукта: '   . $productContent . '<br>';
             echo 'Остатки: '             . $productRemains . '<br>';
@@ -97,51 +109,65 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
             // проверка на наличие родительского ресурса
             if (empty($parentID)) {
 
-                echo 'Родительский ресурс отсутствует<br>';
-            } else {
+                //echo 'Родительский ресурс отсутствует<br>';
+            } else {                
 
-                echo ' ID родительского ресурса: '. $parentID . '<br><br>';
-            }
-            
+                $response = $modx->runProcessor('resource/create', array(
+                    'template' => 6, // шаблон с товаром
+                    'isfolder' => 0, // это не контейнер
+                    'published' => 1, // опубликован
+                    'parent' => $parentID,
+                    'pagetitle' => $productName,
+                    'alias' => $rows .'-'. translit($productName),
+                    'content' => $productContent,
+                    // основные параметры msProduct
+                    'class_key' => 'msProduct', // указываем что это товар minishop
+                    'show_in_tree' => 0, // не показывать товар в древе ресурсов
+                    'article' => $productID, // Артикул
+                    'price' => $productPrice, // Цена
+                    'new' => $productNew, // Новый товар
+                    'popular' => $productTopSale, // Популярный товар 
+                    // устанавливаем TV поля
+                    'tv1' =>  $productID,          // TV - guidext
+                    'tv2' =>  $productParent,      // TV - guidextparent
+                    'tv5' =>  $productRemains,     // TV - product-remains
+                    'tv6' =>  $productPrice,       // TV - product-price
+                    'tv7' =>  $productNew,         // TV - product-new
+                    'tv8' =>  $productTopSale,     // TV - product-topSale
+                    'tv9' =>  $productProfitPrice, // TV - product-profitPrice
+                    'tv10' =>  $productOrder,      // TV - product-order
+                    'tv11' =>  $productIDAlso      // TV - product-also
+                ));
+    
+                if ($response->isError()) {
+                    //print_r($modx->error->failure($response->getMessage()));
+                    $errorArr = $modx->error->failure($response->getMessage());
+                    //object2file( $errorArr, 'log.txt');
+                    file_put_contents('log.txt', PHP_EOL . serialize($errorArr), FILE_APPEND);
+                }
+                $modx->cacheManager->clearCache(); // очищаем кэш
 
-            $response = $modx->runProcessor('resource/create', array(
-                'template' => 6, // шаблон с товаром
-                'isfolder' => 0, // это не контейнер
-                'published' => 1, // опубликован
-                'parent' => $parentID,
-                'pagetitle' => $productName,
-                'content' => $productContent,
-                // основные параметры msProduct
-                'class_key' => 'msProduct', // указываем что это товар minishop
-                'show_in_tree' => 0, // не показывать товар в древе ресурсов
-                'price' => $productPrice, // Цена
-                'new' => $productNew, // Новый товар
-                'popular' => $productTopSale, // Популярный товар 
-                // устанавливаем TV поля
-                'tv1' =>  $productID,          // TV - guidext
-                'tv2' =>  $productParent,      // TV - guidextparent
-                'tv5' =>  $productRemains,     // TV - product-remains
-                'tv6' =>  $productPrice,       // TV - product-price
-                'tv7' =>  $productNew,         // TV - product-new
-                'tv8' =>  $productTopSale,     // TV - product-topSale
-                'tv9' =>  $productProfitPrice, // TV - product-profitPrice
-                'tv10' =>  $productOrder,      // TV - product-order
-                'tv11' =>  $productIDAlso, // TV - product-also
-            ));
+                // получаем id созданного ресурса
+                $newId = $response->response['object']['id'];
+                $page = $modx->getObject('modResource', $newId);
+                // записываем псевдоним
+                $page->set('alias', $newId . '-' . translit($productName)); // здесь возникает ошибка!!!
+                $page->save();
 
-            if ($response->isError()) {
-                return $modx->error->failure($response->getMessage());
-            }
-            $modx->cacheManager->clearCache(); // очищаем кэш                       
+                //echo ' ID родительского ресурса: '. $parentID . '<br>';
+                //echo 'ID продукта: '         . $productID . '<br>';
+                //echo 'Название продукта: '   . $productName . '<br><br>';
+            }      
         
            
-        } elseif (empty($result) and $productParent == '00000000-0000-0000-0000-000000000000') { // если родитель не указан
+        } elseif ($productParent == '00000000-0000-0000-0000-000000000000') { // если родитель не указан
 
-            echo 'ресурс <b>' . $productName . '</b> не имеет родительского каталога <br>';
+            //echo 'ресурс <b>' . $productName . '</b> не имеет родительского каталога <br>';
             
         } else { // если ресурс уже есть в каталоге проверяем товар на изменение позиции 
 
-            echo 'ресурс ID:' . $result . ' <b>' . $productName . '</b> - уже есть в каталоге <br>';
+            //echo 'ресурс ID:' . $result . ' <b>' . $productName . '</b> - уже есть в каталоге <br>';
+           // echo 'Ok! <br>';
 
         }
     }
