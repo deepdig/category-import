@@ -58,7 +58,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
     $productName = $csv[0];            // Название ресурса (Names)
     $productContent = $csv[1];         // Описание товара (content)
     $productRemains = $csv[2];         // Остатки (remains)
-    $productPrice = preg_replace("/[^x\d|*\.]/", "", $csv[3]);           // цена (price)
+    $productPrice = preg_replace("/[^x\d|*\.]/", "", $csv[3]);           // цена (price)  удаляем пробелы
     $productNew = $csv[4];             // для формирования блока "Новинки" (new)
     $productTopSale = $csv[5];         // для формирования блока "Лидеры продаж" (topSale)
     $productProfitPrice = $csv[6];     // для формирования блока "Выгодная цена" (profit_price)
