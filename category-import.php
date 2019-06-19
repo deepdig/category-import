@@ -1,4 +1,8 @@
 <?php
+/*
+    Скрипт для импорта категорий из csv в minishop2
+    Кучеров М.А 2019. https://github.com/deepdig
+*/
 
 set_time_limit(1440);
 

@@ -1,4 +1,8 @@
 <?php
+/*
+    Скрипт для импорта товаров из csv в minishop2
+    Кучеров М.А 2019. https://github.com/deepdig
+*/
 
 set_time_limit(36000); // 10 часов лимит времени
 ini_set('memory_limit', '2048M'); // лимит памяти

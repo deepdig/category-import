@@ -1,5 +1,9 @@
 <?php
 
+/*
+    Скрипт для обновления tv-полей ресурсов (товаров)
+*/
+
 set_time_limit(36000); // 10 часов лимит времени
 ini_set('memory_limit', '2048M'); // лимит памяти
 
@@ -8,24 +12,13 @@ error_reporting(E_ALL);
 header("Content-Type: text/html; charset=utf-8");
 
 define('MODX_API_MODE', true);
-//require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
+require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
+//require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
 $modx = new modX();
 $modx->initialize('web');
 
-// Функция записи массива в лог
-function object2file($value, $filename)
-{
-	$str_value = "\n".serialize($value);
-	
-	$f = fopen($filename, 'w');
-	fwrite($f, $str_value);
-	fclose($f);
-}
-
-
 // загружаем файл импорта из csv
-//$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_last.csv'; // имя файла
+//$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_5.csv'; // имя файла
 $file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/test_tovar.csv'; // имя файла
 $delimeter = '|'; // разделитель
 $delimeterEnd = '^'; // разделитель строк
@@ -57,7 +50,7 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
         // если ресурс не 000000
         if ($productParent != '00000000-0000-0000-0000-000000000000') {
         
-           
+            /*
             echo 'Название продукта: '   . $productName . '<br>';
             echo 'Описание продукта: '   . $productContent . '<br>';
             echo 'Остатки: '             . $productRemains . '<br>';
@@ -68,29 +61,32 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
             echo 'Под заказ?: '          . $productOrder . '<br>';
             echo 'ID продукта: '         . $productID . '<br>';
             echo 'Родительский ресурс: ' . $productParent . '<br>';
-            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';            
+            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';  
+            */          
             
-            // ищем ресурс, который будем обновлять
-            $resourceID = $modx->runSnippet('msProducts', array(
-                'parents' => $mainParent,
-                'limit' => 0,
-                'level' => 10,
-                'returnIds' => 1,
-                'includeTVs' => 'guidext',
-                'where' => '{"guidext:LIKE":"' . $productID . '"}',
-            ));
-
-            // проверка на наличие ресурса            
+            // ищем ID ресурса по "pagetitle", который будем потом обновлять
+            $sql = 'SELECT * FROM `modx_sablmse2_intro` WHERE intro="'.$productName.'"';
+            $statement = $modx->query($sql);
+            if ($statement) {
+                $info = $statement->fetchAll(PDO::FETCH_ASSOC);    
+                $resourceID = $info[0]['resource'];
+            }
+            
             if (!empty($resourceID)) {
                 
-                $product = $modx->getObject('msProduct', $resourceID);
-                $product->set('price', $productPrice); // записываем цену                
+                $product = $modx->getObject('modResource', $resourceID);
+              //  $product = $modx->getObject('msProduct', $resourceID);
+              //  $product->set('price', $productPrice); // записываем цену
+              //  $product->set('article', $productID);
+                $product->setTVValue('guidext', $productID);
+                $product->setTVValue('guidextparent', $productParent);
                 $product->save();
                 
+            
             } else {
                 //echo 'Ресурс отсутствует<br>';   
-            }            
-        
+            }
+            
            
         } elseif ($productParent == '00000000-0000-0000-0000-000000000000') { // если родитель не указан
 
@@ -111,7 +107,7 @@ fclose($handle);
 
 
 echo '<pre>';
-echo "\nImport complete in " . number_format(microtime(true) - $modx->startTime, 7) . " s\n";
+echo "\nUpdate complete in " . number_format(microtime(true) - $modx->startTime, 7) . " s\n";
 echo "\nTotal rows: $rows\n";
 echo "Updated:  $updated\n";
 echo '</pre>';
