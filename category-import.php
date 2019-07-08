@@ -1,10 +1,13 @@
 <?php
 /*
-    Скрипт для импорта категорий из csv в minishop2
-    Кучеров М.А 2019. https://github.com/deepdig
+    Скрипт для импорта категорий из csv в minishop2    
 */
 
 set_time_limit(1440);
+
+ini_set("display_errors",1);
+error_reporting(E_ALL);
+header("Content-Type: text/html; charset=utf-8");
 
 define('MODX_API_MODE', true);
 //require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
@@ -39,7 +42,8 @@ function translit($s)
 
 // получаем имеющиеся ресурсы
 $where = array(
-    'parent' => $mainParent // родительский каталог
+    'parent' => $mainParent, // родительский каталог
+    'template:IN' => array(4, 5) // шаблоны каталога
 );
 $resources = $modx->getCollection('modResource', $where);
 
@@ -154,12 +158,12 @@ if (empty($resources)) {
 
             // ищем совпадения UID
             $result = $modx->runSnippet('pdoResources', array(
-                'parents' => 0,
+                'parents' => $mainParent,
                 'limit' => 0,
                 'level' => 10,
                 'returnIds' => 1,
                 'includeTVs' => 'guidext',
-                'where' => '{"guidext:LIKE":"' . $GUIDExt . '"}',
+                'where' => '{"template:IN" : [ 4,5 ], "AND:guidext:LIKE":"' . $GUIDExt . '"}',
             ));
 
             if (empty($result)) {
@@ -216,12 +220,12 @@ if (empty($resources)) {
                     if ($parent) {
                         // ищем родительский каталог..
                         $result = $modx->runSnippet('pdoResources', array(
-                            'parents' => 0,
+                            'parents' => $mainParent,
                             'limit' => 0,
                             'level' => 10,
                             'returnIds' => 1,
                             'includeTVs' => 'guidext,guidextparent',
-                            'where' => '{"guidext:LIKE":"' . $parent . '"}',
+                            'where' => '{"template:IN" : [ 4,5 ], "AND:guidext:LIKE":"' . $parent . '"}'
                         ));
                         //echo $result . '<br>';
                         // и перемещаем туда дочерний ресурс
