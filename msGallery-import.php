@@ -35,35 +35,33 @@ $resources = $modx->getCollection('modResource',$where);
 
 
 foreach ($resources as $id => $res) {
-    $modx->error->reset(); // Сброс ошибок  
+    $modx->error->reset(); // Сброс ошибок    
     
-    if ($id == 1207) {
-        $uid = $res->getTVValue('guidext'); // получаем ключ товара
-        // загружаемые файлы
-        $dir_imgs = $base . $uid . '/';
+    $uid = $res->getTVValue('guidext'); // получаем ключ товара
+    // загружаемые файлы
+    $dir_imgs = $base . $uid . '/';
         
-        foreach (array_diff( scandir($dir_imgs), array('..', '.')) as $file_img) {
-            $all_img[] = $dir_imgs . $file_img;
-        }
+    foreach (array_diff( scandir($dir_imgs), array('..', '.')) as $file_img) {
+        $all_img[] = $dir_imgs . $file_img;
+    }
         
-        //print_r($all_img);
+    //print_r($all_img);
         
-        foreach($all_img as $value){
-            $data = [
-                'id' => $id, // id - ресурса
-                'file' => $value, // путь к картинке
-            ];
-            // Вызов процессора загрузки
-            $response = $modx->runProcessor('gallery/upload', $data, [
-                'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
-            ]);
+    foreach($all_img as $value){
+        $data = [
+            'id' => $id, // id - ресурса
+            'file' => $value, // путь к картинке
+        ];
+        // Вызов процессора загрузки
+        $response = $modx->runProcessor('gallery/upload', $data, [
+            'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
+        ]);
 
-            // Вывод результата работы процессора
-            if ($response->isError()) {
-                print_r($response->getAllErrors());
-            }
+        // Вывод результата работы процессора
+        if ($response->isError()) {
+            print_r($response->getAllErrors());
         }
-    }  
+    }
 }
 
 
