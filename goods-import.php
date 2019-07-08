@@ -42,7 +42,7 @@ function translit($s)
 }
 
 // загружаем файл импорта из csv
-$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7.csv'; // имя файла
+$file = MODX_BASE_PATH . 'ajax/import/my_tovar_7.csv'; // имя файла
 //$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_5.csv'; // имя файла
 $delimeter = '|'; // разделитель
 $delimeterEnd = '^'; // разделитель строк
@@ -67,12 +67,13 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
     $productOrder = $csv[7];           // для индентификации товара "Под заказ" (order)
     $productID = $csv[8];              // идентификатор ресурса (GUIDExt)
     $productParent = $csv[9];          // родительский ресурс (GUIDExtParent)
-    $productIDAlso = $csv[10];         // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)
-    $vendor = $csv[11];                // фильтр по производителю (Filter1)
-    $filter2 = $csv[12];               // (Filter2)
-    $filter3 = $csv[12];               // (Filter3)
-    $filter4 = $csv[12];               // (Filter4)
-    $filter5 = $csv[12];               // (Filter5)
+    $productDopCategory = $csv[10];    // доп.категории товара (GUIDExtParents)
+    $productIDAlso = $csv[11];         // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)
+    $vendor = $csv[12];                // фильтр по производителю (Filter1)
+    $filter2 = $csv[13];               // (Filter2)
+    $filter3 = $csv[14];               // (Filter3)
+    $filter4 = $csv[15];               // (Filter4)
+    $filter5 = $csv[16];               // (Filter5)
     
     if ($productName != 'Names') {
 
@@ -143,9 +144,10 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
                     'tv7' =>  $productNew,         // TV - product-new
                     'tv8' =>  $productTopSale,     // TV - product-topSale
                     'tv9' =>  $productProfitPrice, // TV - product-profitPrice
-                    'tv10' =>  $productOrder,      // TV - product-order
-                    'tv11' =>  $productIDAlso,     // TV - product-also
-                    'tv15' =>  $vendor             // TV - filter-vendor
+                    'tv10' => $productOrder,       // TV - product-order
+                    'tv11' => $productIDAlso,      // TV - product-also
+                    'tv15' => $vendor,             // TV - filter-vendor
+                    'tv16' => $productDopCategory  // TV - product-dopCategory
                 ));
     
                 if ($response->isError()) {
@@ -199,9 +201,10 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
                     'tv7' =>  $productNew,         // TV - product-new
                     'tv8' =>  $productTopSale,     // TV - product-topSale
                     'tv9' =>  $productProfitPrice, // TV - product-profitPrice
-                    'tv10' =>  $productOrder,      // TV - product-order
-                    'tv11' =>  $productIDAlso,     // TV - product-also
-                    'tv15' =>  $vendor             // TV - filter-vendor
+                    'tv10' => $productOrder,       // TV - product-order
+                    'tv11' => $productIDAlso,      // TV - product-also
+                    'tv15' => $vendor,             // TV - filter-vendor
+                    'tv16' => $productDopCategory  // TV - product-dopCategory
                 ));
     
                 if ($response->isError()) {
@@ -219,14 +222,14 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
             if($doc = $modx->getObject('modResource', $resourceID)){
                 $response = $modx->runProcessor('resource/update', array(
                     'published' => 1, // опубликован
-                    'parent' => $parentID,
+                    'parent' =>    $parentID,
                     'pagetitle' => $productName,
-                    'content' => $productContent,
-                    'article' => $productID, // Артикул
-                    'price' => $productPrice, // Цена
-                    'new' => $productNew, // Новый товар
-                    'popular' => $productTopSale, // Популярный товар
-                    'vendor' => $vendor, // производитель
+                    'content' =>   $productContent,
+                    'article' =>   $productID, // Артикул
+                    'price' =>     $productPrice, // Цена
+                    'new' =>       $productNew, // Новый товар
+                    'popular' =>   $productTopSale, // Популярный товар
+                    'vendor' =>    $vendor, // производитель
                     // устанавливаем TV поля
                     'tv1' =>   $productID,          // TV - guidext
                     'tv2' =>   $productParent,      // TV - guidextparent
@@ -237,7 +240,8 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
                     'tv9' =>   $productProfitPrice, // TV - product-profitPrice
                     'tv10' =>  $productOrder,       // TV - product-order
                     'tv11' =>  $productIDAlso,      // TV - product-also
-                    'tv15' =>  $vendor              // TV - filter-vendor
+                    'tv15' =>  $vendor,             // TV - filter-vendor
+                    'tv16' =>  $productDopCategory  // TV - product-dopCategory
                 ));
                 if ($response->isError()) {
                     //print_r($modx->error->failure($response->getMessage()));

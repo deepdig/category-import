@@ -11,7 +11,7 @@ error_reporting(E_ALL);
 header("Content-Type: text/html; charset=utf-8");
 
 define('MODX_API_MODE', true);
-//require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
+//require_once(MODX_BASE_PATH . 'index.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
 $modx = new modX();
 $modx->initialize('web');
