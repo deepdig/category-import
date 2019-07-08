@@ -10,14 +10,14 @@ error_reporting(E_ALL);
 header("Content-Type: text/html; charset=utf-8");
 
 define('MODX_API_MODE', true);
-//require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
+require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
+//require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
 $modx = new modX();
 $modx->initialize('web');
 
 // загружаем файл импорта из csv
-//$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_1c.csv'; // имя файла
-$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_1c.csv'; // имя файла
+$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/category.csv'; // имя файла
+//$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_1c.csv'; // имя файла
 $delimeter = '|'; // разделитель
 
 $handle = fopen($file, "r");
@@ -156,6 +156,14 @@ if (empty($resources)) {
         // если первый столбец число и не пусто имя, начинаем работать
         if ($cid != 'ID' and  !empty($name)) {
 
+            // ищем родителя ресурса по полю "guidext"
+            $sql = 'SELECT * FROM `modx_sablsite_tmplvar_contentvalues` WHERE tmplvarid = 1 AND value = "'.$GUIDExt.'"'; // выборка из таблицы
+            $statement = $modx->query($sql);
+            if ($statement) {
+                $info = $statement->fetchAll(PDO::FETCH_ASSOC);    
+                $resourceID = $info[0]['contentid']; // id родителя
+            }
+
             // ищем совпадения UID
             $result = $modx->runSnippet('pdoResources', array(
                 'parents' => $mainParent,
@@ -171,6 +179,7 @@ if (empty($resources)) {
                 echo 'В файле csv обнаружен новый ресурс ' . $name . '<br>';
                 // если в csv найдена новая позиция, создаем из нее ресурс
                 // назначаем ресурсу нужный шаблон
+                
                 if ($GoodsIn == 0) {
                     $template = 4;
                 } elseif ($GoodsIn == 1) {
@@ -232,7 +241,7 @@ if (empty($resources)) {
                         $res->set('parent', $result);
                         $res->save();
                     }
-                }
+                }                
 
             } else {
 
