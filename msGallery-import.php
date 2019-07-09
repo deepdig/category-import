@@ -11,8 +11,8 @@ error_reporting(E_ALL);
 header("Content-Type: text/html; charset=utf-8");
 
 define('MODX_API_MODE', true);
-//require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
-require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
+require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
+//require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
 $modx = new modX();
 $modx->initialize('web');
 
@@ -35,31 +35,28 @@ $resources = $modx->getCollection('modResource',$where);
 
 
 foreach ($resources as $id => $res) {
-    $modx->error->reset(); // Сброс ошибок    
+    $modx->error->reset(); // Сброс ошибок
+    if ($id) {
+        $uid = $res->getTVValue('guidext'); // получаем ключ товара
+        // загружаемые файлы
+        $dir_imgs = $base . $uid . '/';
+            
+        foreach (array_diff( scandir($dir_imgs), array('..', '.')) as $file_img) {
+            $file = $dir_imgs . $file_img; // полный путь к файлу
+                    
+            $data = [
+                'id' => $id, // id - ресурса
+                'file' => $file, // путь к картинке
+            ];
+            // Вызов процессора загрузки
+            $response = $modx->runProcessor('gallery/upload', $data, [
+                'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
+            ]);
     
-    $uid = $res->getTVValue('guidext'); // получаем ключ товара
-    // загружаемые файлы
-    $dir_imgs = $base . $uid . '/';
-        
-    foreach (array_diff( scandir($dir_imgs), array('..', '.')) as $file_img) {
-        $all_img[] = $dir_imgs . $file_img;
-    }
-        
-    //print_r($all_img);
-        
-    foreach($all_img as $value){
-        $data = [
-            'id' => $id, // id - ресурса
-            'file' => $value, // путь к картинке
-        ];
-        // Вызов процессора загрузки
-        $response = $modx->runProcessor('gallery/upload', $data, [
-            'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
-        ]);
-
-        // Вывод результата работы процессора
-        if ($response->isError()) {
-            print_r($response->getAllErrors());
+            // Вывод результата работы процессора
+            if ($response->isError()) {
+                print_r($response->getAllErrors());
+            }
         }
     }
 }
