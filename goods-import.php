@@ -11,8 +11,8 @@ error_reporting(E_ALL);
 header("Content-Type: text/html; charset=utf-8");
 
 define('MODX_API_MODE', true);
-require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
-//require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
+//require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/index.php');
 $modx = new modX();
 $modx->initialize('web');
 
@@ -32,8 +32,8 @@ function object2file($value, $filename)
 }
 
 // загружаем файл импорта из csv
-$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7.csv'; // имя файла
-//$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/test_tovar.csv'; // имя файла
+//$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7.csv'; // имя файла
+$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/test_tovar.csv'; // имя файла
 $delimeter = '|'; // разделитель
 $delimeterEnd = '^'; // разделитель строк
 $mainParent = 2; // Основной контейнер каталога
