@@ -6,7 +6,7 @@
 set_time_limit(36000); // 10 часов лимит времени
 ini_set('memory_limit', '2048M'); // лимит памяти
 
-ini_set("display_errors",1);
+ini_set("display_errors", 1);
 error_reporting(E_ALL);
 header("Content-Type: text/html; charset=utf-8");
 
@@ -16,34 +16,24 @@ require_once('/home/g/g70573wf/new_sablemarket/public_html/index.php');
 $modx = new modX();
 $modx->initialize('web');
 
+//Подключение служб вывода ошибок
+$modx->getService('error', 'error.modError');
+$modx->setLogLevel(modX::LOG_LEVEL_ERROR);
+$modx->setLogTarget(XPDO_CLI_MODE ? 'ECHO' : 'HTML');
+
 // Функция записи массива в лог
 function object2file($value, $filename)
 {
-	$str_value = "\n".serialize($value);
-	
-	$f = fopen($filename, 'w');
-	fwrite($f, $str_value);
-	fclose($f);
-}
+    $str_value = "\n" . serialize($value);
 
-// Функция транслитерации
-function translit($s)
-{
-    $s = (string)$s; // преобразуем в строковое значение
-    $s = strip_tags($s); // убираем HTML-теги
-    $s = str_replace(array("\n", "\r"), " ", $s); // убираем перевод каретки
-    $s = preg_replace("/\s+/", ' ', $s); // удаляем повторяющие пробелы
-    $s = trim($s); // убираем пробелы в начале и конце строки
-    $s = function_exists('mb_strtolower') ? mb_strtolower($s) : strtolower($s); // переводим строку в нижний регистр (иногда надо задать локаль)
-    $s = strtr($s, array('а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd', 'е' => 'e', 'ё' => 'e', 'ж' => 'j', 'з' => 'z', 'и' => 'i', 'й' => 'y', 'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n', 'о' => 'o', 'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't', 'у' => 'u', 'ф' => 'f', 'х' => 'h', 'ц' => 'c', 'ч' => 'ch', 'ш' => 'sh', 'щ' => 'shch', 'ы' => 'y', 'э' => 'e', 'ю' => 'yu', 'я' => 'ya', 'ъ' => '', 'ь' => ''));
-    $s = preg_replace("/[^0-9a-z-_ ]/i", "", $s); // очищаем строку от недопустимых символов
-    $s = str_replace(" ", "-", $s); // заменяем пробелы знаком минус
-    return $s; // возвращаем результат
+    $f = fopen($filename, 'w');
+    fwrite($f, $str_value);
+    fclose($f);
 }
 
 // загружаем файл импорта из csv
-$file = MODX_BASE_PATH . 'ajax/import/my_tovar_7.csv'; // имя файла
-//$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/my_tovar_5.csv'; // имя файла
+$file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7.csv'; // имя файла
+//$file = $_SERVER['DOCUMENT_ROOT'] . '/ajax/category-import/import/test_tovar.csv'; // имя файла
 $delimeter = '|'; // разделитель
 $delimeterEnd = '^'; // разделитель строк
 $mainParent = 2; // Основной контейнер каталога
@@ -53,7 +43,7 @@ $rows = $updated = 0;
 
 //цикл для сбора данных из csv
 while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
-    
+
     $rows++;
 
     // определяем в переменные столбцы из файла    
@@ -74,52 +64,92 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
     $filter3 = $csv[14];               // (Filter3)
     $filter4 = $csv[15];               // (Filter4)
     $filter5 = $csv[16];               // (Filter5)
-    
+
     if ($productName != 'Names') {
 
+
+        /*
+            echo 'Название продукта: '   . $productName . '<br>';
+            echo 'Описание продукта: '   . $productContent . '<br>';
+            echo 'Остатки: '             . $productRemains . '<br>';
+            echo 'Цена: '                . $productPrice . '<br>';
+            echo 'Новинка?: '            . $productNew . '<br>';
+            echo 'Лидер продаж?: '       . $productTopSale . '<br>';
+            echo 'Выгодная цена?: '      . $productProfitPrice . '<br>';
+            echo 'Под заказ?: '          . $productOrder . '<br>';
+            echo 'ID продукта: '         . $productID . '<br>';
+            echo 'Родительский ресурс: ' . $productParent . '<br>';
+            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';  
+            */
+
         // проверяем наличие ресурса в каталоге
-        $sql = 'SELECT * FROM `modx_sablsite_tmplvar_contentvalues` WHERE tmplvarid = 1 AND value = "'.$productID.'"'; // выборка из таблицы
+        $sql = 'SELECT * FROM `modx_sablsite_content` WHERE pagetitle="' . $productName . '"';
         $statement = $modx->query($sql);
         if ($statement) {
-            $info = $statement->fetchAll(PDO::FETCH_ASSOC);    
-            $resourceID = $info[0]['contentid']; // id
+            $info = $statement->fetchAll(PDO::FETCH_ASSOC);
+            $resourceID = $info[0]['id'];
         }
 
-        // если ресурс не создан, то создаем
-        if (empty($resourceID) and $productParent != '00000000-0000-0000-0000-000000000000') {
-                    
-            /*
-            echo 'Название продукта: '      . $productName . '<br>';
-            echo 'Описание продукта: '      . $productContent . '<br>';
-            echo 'Остатки: '                . $productRemains . '<br>';
-            echo 'Цена: '                   . $productPrice . '<br>';
-            echo 'Новинка?: '               . $productNew . '<br>';
-            echo 'Лидер продаж?: '          . $productTopSale . '<br>';
-            echo 'Выгодная цена?: '         . $productProfitPrice . '<br>';
-            echo 'Под заказ?: '             . $productOrder . '<br>';
-            echo 'ID продукта: '            . $productID . '<br>';
-            echo 'Родительский ресурс: '    . $productParent . '<br>';
-            echo 'Вам могут понадобиться: ' . $productIDAlso . '<br>';
-            echo 'Производитель: '          . $vendor . '<br>';     
-            */
-            
-            // ищем родительский каталог для данного товара
-            $sql = 'SELECT * FROM `modx_sablsite_tmplvar_contentvalues` WHERE tmplvarid = 1 AND value = "'.$productParent.'"'; // выборка из таблицы
+        /*
+            $sql = 'SELECT * FROM `modx_sablsite_tmplvar_contentvalues` WHERE tmplvarid = 1 AND value = "'.$productID.'"'; // выборка по значению UID
             $statement = $modx->query($sql);
             if ($statement) {
                 $info = $statement->fetchAll(PDO::FETCH_ASSOC);    
-                $parentID = $info[0]['contentid']; // id
+                $resourceID = $info[0]['contentid']; // id
             }
-            
-            //echo 'Родительский ресурс ' . $parentID . '<br>';
+            */
 
+        if (!empty($resourceID)) {
 
-            // проверка на наличие родительского ресурса
-            if (empty($parentID)) {
+            //echo $productName . '--' .$resourceID;
 
-                echo 'Родительский ресурс отсутствует у товара:' . $productName . '<br>';
-            } else {                
+            if ($productParent != '00000000-0000-0000-0000-000000000000') {
+                // ищем родительский каталог для данного товара
+                $sql = 'SELECT * FROM `modx_sablsite_tmplvar_contentvalues` WHERE tmplvarid = 1 AND value = "' . $productParent . '"'; // выборка из таблицы
+                $statement = $modx->query($sql);
+                if ($statement) {
+                    $info = $statement->fetchAll(PDO::FETCH_ASSOC);
+                    $parentID = $info[0]['contentid']; // id
+                }
+            } else {
+                $parentID =   23170; // иначе отправляем в "Разное"  
+            }
 
+            if ($parentID) {
+                // обновляем поля товара
+                $product = $modx->getObject('modResource', $resourceID);
+                $product->set('parent', $parentID);
+                $product->set('price', $productPrice); // записываем цену
+                $product->set('content', $productConten);
+                $product->setTVValue('guidext', $productID);
+                $product->setTVValue('guidextparent', $productParent);
+                $product->setTVValue('product-dopCategory', $productDopCategory);
+                $product->setTVValue('product-price', $productPrice);
+                $product->setTVValue('product-new', $productNew);
+                $product->setTVValue('product-topSale', $productTopSale);
+                $product->setTVValue('product-remains', $productRemains);
+                $product->setTVValue('product-profitPrice', $productProfitPrice);
+                $product->setTVValue('product-order', $productOrder);
+                $product->setTVValue('product-also', $productIDAlso);
+                $product->setTVValue('filter-vendor', $vendor);
+                $product->save();
+            }
+        } else {
+            //echo 'Ресурс отсутствует<br>';
+
+            if ($productParent != '00000000-0000-0000-0000-000000000000') {
+                // ищем родительский каталог для данного товара
+                $sql = 'SELECT * FROM `modx_sablsite_tmplvar_contentvalues` WHERE tmplvarid = 1 AND value = "' . $productParent . '"'; // выборка из таблицы
+                $statement = $modx->query($sql);
+                if ($statement) {
+                    $info = $statement->fetchAll(PDO::FETCH_ASSOC);
+                    $parentID = $info[0]['contentid']; // id
+                }
+            } else {
+                $parentID =   23170; // иначе отправляем в "Разное"  
+            }
+
+            if ($parentID) {
                 $response = $modx->runProcessor('resource/create', array(
                     'template' => 6, // шаблон с товаром
                     'isfolder' => 0, // это не контейнер
@@ -149,107 +179,13 @@ while (($csv = fgetcsv($handle, 0, $delimeter, $delimeterEnd)) !== false) {
                     'tv15' => $vendor,             // TV - filter-vendor
                     'tv16' => $productDopCategory  // TV - product-dopCategory
                 ));
-    
+
                 if ($response->isError()) {
-                    //print_r($modx->error->failure($response->getMessage()));
                     $errorArr = $modx->error->failure($response->getMessage());
-                    object2file( $errorArr, 'log.txt');
+                    object2file($errorArr, 'log.txt');
                     file_put_contents('log.txt', PHP_EOL . serialize($errorArr), FILE_APPEND);
                 }
-                $modx->cacheManager->clearCache(); // очищаем кэш
-
-                // получаем id созданного ресурса
-                /*
-                $newId = $response->response['object']['id'];
-                $page = $modx->getObject('modResource', $newId);
-                // записываем псевдоним
-                $page->set('alias', $newId . '-' . translit($productName)); // здесь возникает ошибка!!!
-                $page->save();
-                */
-
-                //echo ' ID родительского ресурса: '. $parentID . '<br>';
-                //echo 'ID продукта: '         . $productID . '<br>';
-                //echo 'Название продукта: '   . $productName . '<br><br>';
-            }      
-        
-           
-        } elseif (empty($resourceID) and $productParent == '00000000-0000-0000-0000-000000000000') { // если родитель не указан и ресурс не создан - создаем в каталоге "Разное"
-
-            //echo 'ресурс <b>' . $productName . '</b> не имеет родительского каталога <br>';
-            
-            $response = $modx->runProcessor('resource/create', array(
-                    'template' => 6, // шаблон с товаром
-                    'isfolder' => 0, // это не контейнер
-                    'published' => 1, // опубликован
-                    'parent' => 23170, // каталог "Разное"
-                    'pagetitle' => $productName,
-                    //'alias' => $rows .'-'. translit($productName),
-                    'content' => $productContent,
-                    // основные параметры msProduct
-                    'class_key' => 'msProduct', // указываем что это товар minishop
-                    'show_in_tree' => 0, // не показывать товар в древе ресурсов
-                    'article' => $productID, // Артикул
-                    'price' => $productPrice, // Цена
-                    'new' => $productNew, // Новый товар
-                    'popular' => $productTopSale, // Популярный товар
-                    'vendor' => $vendor, // производитель
-                    // устанавливаем TV поля
-                    'tv1' =>  $productID,          // TV - guidext
-                    'tv2' =>  $productParent,      // TV - guidextparent
-                    'tv5' =>  $productRemains,     // TV - product-remains
-                    'tv6' =>  $productPrice,       // TV - product-price
-                    'tv7' =>  $productNew,         // TV - product-new
-                    'tv8' =>  $productTopSale,     // TV - product-topSale
-                    'tv9' =>  $productProfitPrice, // TV - product-profitPrice
-                    'tv10' => $productOrder,       // TV - product-order
-                    'tv11' => $productIDAlso,      // TV - product-also
-                    'tv15' => $vendor,             // TV - filter-vendor
-                    'tv16' => $productDopCategory  // TV - product-dopCategory
-                ));
-    
-                if ($response->isError()) {
-                    //print_r($modx->error->failure($response->getMessage()));
-                    $errorArr = $modx->error->failure($response->getMessage());
-                    object2file( $errorArr, 'log.txt');
-                    file_put_contents('log.txt', PHP_EOL . serialize($errorArr), FILE_APPEND);
-                }
-                $modx->cacheManager->clearCache(); // очищаем кэш
-            
-        } else { // если ресурс уже есть в каталоге обновляем товар
-
-            //echo 'ресурс ID:' . $result . ' <b>' . $productName . '</b> - уже есть в каталоге <br>';
-            
-            if($doc = $modx->getObject('modResource', $resourceID)){
-                $response = $modx->runProcessor('resource/update', array(
-                    'published' => 1, // опубликован
-                    'parent' =>    $parentID,
-                    'pagetitle' => $productName,
-                    'content' =>   $productContent,
-                    'article' =>   $productID, // Артикул
-                    'price' =>     $productPrice, // Цена
-                    'new' =>       $productNew, // Новый товар
-                    'popular' =>   $productTopSale, // Популярный товар
-                    'vendor' =>    $vendor, // производитель
-                    // устанавливаем TV поля
-                    'tv1' =>   $productID,          // TV - guidext
-                    'tv2' =>   $productParent,      // TV - guidextparent
-                    'tv5' =>   $productRemains,     // TV - product-remains
-                    'tv6' =>   $productPrice,       // TV - product-price
-                    'tv7' =>   $productNew,         // TV - product-new
-                    'tv8' =>   $productTopSale,     // TV - product-topSale
-                    'tv9' =>   $productProfitPrice, // TV - product-profitPrice
-                    'tv10' =>  $productOrder,       // TV - product-order
-                    'tv11' =>  $productIDAlso,      // TV - product-also
-                    'tv15' =>  $vendor,             // TV - filter-vendor
-                    'tv16' =>  $productDopCategory  // TV - product-dopCategory
-                ));
-                if ($response->isError()) {
-                    //print_r($modx->error->failure($response->getMessage()));
-                    $errorArr = $modx->error->failure($response->getMessage());
-                    object2file( $errorArr, 'log.txt');
-                    file_put_contents('log.txt', PHP_EOL . serialize($errorArr), FILE_APPEND);
-                }
-                $modx->cacheManager->clearCache();
+                $modx->cacheManager->refresh(); // очищаем кэш
             }
         }
     }
