@@ -39,27 +39,17 @@ $mainParent = 2; // Основной контейнер каталога
 $dir_image = MODX_BASE_PATH . 'assets/img_katalog/';
 
 // загружаем файл импорта из csv
-$category_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_category.csv'; // имя файла импорта категорий
-$products_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7.csv'; // имя файла импорта товаров
-$category_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_category_finished_' . $data . '.csv'; // имя переименованного файла категорий
-$products_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7_finished_' . $data . '.csv'; // имя переименованного файла товаров
+$category_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_category.csv'; // имя файла импорта категорий
+$products_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_products.csv'; // имя файла импорта товаров
+$category_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_category_finished_' . $data . '.csv'; // имя переименованного файла категорий
+$products_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_products_finished_' . $data . '.csv'; // имя переименованного файла товаров
 
 // проверяем наличие файла импорта категорий. если есть - запускаем процесс обновления
 if (file_exists($category_file_original)) {
 
-    rename($category_file_original, $category_file); // переименовываем оригинальный файл, на случай его случайной замены в процессе импорта
-
     $delimeter = '|'; // разделитель
-    $handle = fopen($file, "r");
+    $handle = fopen($category_file_original, "r");
     $rows = $updated = 0;
-
-    // получаем имеющиеся ресурсы категорий
-    $where = array(
-        'template:IN' => array(4, 5), // шаблоны каталога
-    );
-    $resources = $modx->getIterator('modResource', $where);
-
-    if ($resources) {
 
         //цикл для сбора данных по уровням
         while (($csv = fgetcsv($handle, 0, $delimeter)) !== false) {
@@ -118,7 +108,7 @@ if (file_exists($category_file_original)) {
                     if ($response->isError()) {
                         return $modx->error->failure($response->getMessage());
                     }
-                    $modx->cacheManager->clearCache();
+                    $modx->cacheManager->refresh();
 
                     $newId = $response->response['object']['id'];
 
@@ -139,20 +129,23 @@ if (file_exists($category_file_original)) {
             }
             $updated++;
         }
-    }
+} else {
+    echo 'Файла импорта категорий не существует  <br>';
 }
 //----- end. обновление категорий закончено ---------------
 
+
+
+// =============== ИМПОРТ ИЛИ ОБНОВЛЕНИЕ ТОВАРОВ ================
+
 // проверяем наличие файла импорта товаров. если есть - запускаем процесс обновления
 if (file_exists($category_file_original) and file_exists($products_file_original)) {
-
-    rename($products_file_original, $products_file); // переименовываем оригинальный файл, на случай его случайной замены в процессе импорта
 
     $delimeter = '|'; // разделитель
     $delimeterEnd = '^'; // разделитель строк
     $mainParent = 2; // Основной контейнер каталога
 
-    $handle = fopen($products_file, "r");
+    $handle = fopen($products_file_original, "r");
     $rows = $updated = 0;
 
     //цикл для сбора данных из csv
@@ -183,9 +176,9 @@ if (file_exists($category_file_original) and file_exists($products_file_original
             $productPrice == 999999; // записываем цену под заказ 999999
         }
 
-        if ($productName != 'Names' and $productName == 'Кран шаровый 3/4 с американкой Латунь (Р)') {
+        if ($productName != 'Names') {
 
-            echo $productName . '<br>';
+            //echo $productName . '<br>';
 
             // проверяем наличие ресурса в каталоге
             $sql = 'SELECT * FROM `modx_sablsite_content` WHERE pagetitle="' . $productName . '"';
@@ -206,7 +199,7 @@ if (file_exists($category_file_original) and file_exists($products_file_original
 
             if (!empty($resourceID)) {
 
-                echo $productName . '--' . $resourceID;
+                //echo $productName . '--' . $resourceID;
 
                 if ($productParent != '00000000-0000-0000-0000-000000000000') {
                     // ищем родительский каталог для данного товара
@@ -241,21 +234,24 @@ if (file_exists($category_file_original) and file_exists($products_file_original
 
                     //--- Обновляем галерею фото ----
                     $dir_imgs = $dir_image . $productID . '/';
-                    foreach (array_diff(scandir($dir_imgs), array('..', '.')) as $file_img) {
-                        $file_path = $dir_imgs . $file_img; // полный путь к файлу
-
-                        $data = [
-                            'id' => $resourceID, // id - ресурса
-                            'file' => $file_path, // путь к картинке
-                        ];
-                        // Вызов процессора загрузки
-                        $response = $modx->runProcessor('gallery/upload', $data, [
-                            'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
-                        ]);
-
-                        // Вывод результата работы процессора
-                        if ($response->isError()) {
-                            print_r($response->getAllErrors());
+                    
+                    if (is_dir($dir_imgs)) {// проверяем наличие папки с фото
+                        foreach (array_diff(scandir($dir_imgs), array('..', '.')) as $file_img) {
+                            $file_path = $dir_imgs . $file_img; // полный путь к файлу
+    
+                            $data = [
+                                'id' => $resourceID, // id - ресурса
+                                'file' => $file_path, // путь к картинке
+                            ];
+                            // Вызов процессора загрузки
+                            $response = $modx->runProcessor('gallery/upload', $data, [
+                                'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
+                            ]);
+    
+                            // Вывод результата работы процессора
+                            if ($response->isError()) {
+                                print_r($response->getAllErrors());
+                            }
                         }
                     }
                 }
@@ -317,21 +313,23 @@ if (file_exists($category_file_original) and file_exists($products_file_original
 
                     //--- Загружаем фото ----
                     $dir_imgs = $dir_image . $productID . '/';
-                    foreach (array_diff(scandir($dir_imgs), array('..', '.')) as $file_img) {
-                        $file_path = $dir_imgs . $file_img; // полный путь к файлу
-
-                        $data = [
-                            'id' => $newId, // id - ресурса
-                            'file' => $file_path, // путь к картинке
-                        ];
-                        // Вызов процессора загрузки
-                        $response = $modx->runProcessor('gallery/upload', $data, [
-                            'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
-                        ]);
-
-                        // Вывод результата работы процессора
-                        if ($response->isError()) {
-                            print_r($response->getAllErrors());
+                    if (is_dir($dir_imgs)) { // проверяем наличие папки с фото
+                        foreach (array_diff(scandir($dir_imgs), array('..', '.')) as $file_img) {
+                            $file_path = $dir_imgs . $file_img; // полный путь к файлу
+    
+                            $data = [
+                                'id' => $newId, // id - ресурса
+                                'file' => $file_path, // путь к картинке
+                            ];
+                            // Вызов процессора загрузки
+                            $response = $modx->runProcessor('gallery/upload', $data, [
+                                'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
+                            ]);
+    
+                            // Вывод результата работы процессора
+                            if ($response->isError()) {
+                                print_r($response->getAllErrors());
+                            }
                         }
                     }
                 }
@@ -343,6 +341,8 @@ if (file_exists($category_file_original) and file_exists($products_file_original
 
     fclose($handle);
     //unlink($products_file); // удаляем файл импорта
+    rename($category_file_original, $category_file); // переименовываем оригинальный файл, на случай его случайной замены в процессе импорта
+    rename($products_file_original, $products_file); // переименовываем оригинальный файл, на случай его случайной замены в процессе импорта
 
     echo '<pre>';
     echo "\nImport complete in " . number_format(microtime(true) - $modx->startTime, 7) . " s\n";
@@ -351,5 +351,5 @@ if (file_exists($category_file_original) and file_exists($products_file_original
     echo '</pre>';
 } else {
 
-    echo "Файлы импорта отсутсвуют";
+    echo "Файл импорта товаров отсутствует <br>";
 }
