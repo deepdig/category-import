@@ -39,10 +39,10 @@ $mainParent = 2; // Основной контейнер каталога
 $dir_image = MODX_BASE_PATH . 'assets/img_katalog/';
 
 // загружаем файл импорта из csv
-$category_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_category.csv'; // имя файла импорта категорий
-$products_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_products.csv'; // имя файла импорта товаров
-$category_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_category_finished_' . $data . '.csv'; // имя переименованного файла категорий
-$products_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/test_products_finished_' . $data . '.csv'; // имя переименованного файла товаров
+$category_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_category.csv'; // имя файла импорта категорий
+$products_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7.csv'; // имя файла импорта товаров
+$category_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_category_finished_' . $data . '.csv'; // имя переименованного файла категорий
+$products_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7_finished_' . $data . '.csv'; // имя переименованного файла товаров
 
 // проверяем наличие файла импорта категорий. если есть - запускаем процесс обновления
 if (file_exists($category_file_original)) {
@@ -56,12 +56,12 @@ if (file_exists($category_file_original)) {
             $rows++;
 
             // определяем в переменные столбцы из файла
-            $cid = $csv[0];            // id ресурса - не используется
-            $name = $csv[1];            // Название ресурса
-            $level = $csv[2];           // Уровень каталога
-            $GoodsIn = $csv[3];         // Идентификатор "является ли каталог" хранилищем товаров
-            $GUIDExt = $csv[4];         // GUIDExt - идентификатор ресурса
-            $GUIDExtParent = $csv[5];   // GUIDExtParent - родительский ресурс
+            $cid = $csv[0];                                          // id ресурса - не используется
+            $name = preg_replace( '/"([^"]*)"/', "«$1»", $csv[1] );  // Название ресурса - заменяем кавычки если есть
+            $level = $csv[2];                                        // Уровень каталога
+            $GoodsIn = $csv[3];                                      // Идентификатор "является ли каталог" хранилищем товаров
+            $GUIDExt = $csv[4];                                      // GUIDExt - идентификатор ресурса
+            $GUIDExtParent = $csv[5];                                // GUIDExtParent - родительский ресурс
 
             // ищем совпадения UID по полю "guidext". 
             $sql = 'SELECT * FROM `modx_sablsite_tmplvar_contentvalues` WHERE tmplvarid = 1 AND value = "' . $GUIDExt . '"'; // выборка из таблицы
@@ -154,8 +154,8 @@ if (file_exists($category_file_original) and file_exists($products_file_original
         $rows++;
 
         // определяем в переменные столбцы из файла    
-        $productName        = $csv[0];                                    // Название ресурса (Names)
-        $productContent     = $csv[1];                                    // Описание товара (content)
+        $productName        = preg_replace( '/"([^"]*)"/', "«$1»", $csv[0] );  // Название ресурса (Names) - заменяем кавычки на << >>
+        $productContent     = preg_replace( '/"([^"]*)"/', "«$1»", $csv[1] );  // Описание товара (content) - заменяем кавычки на << >>
         $productRemains     = $csv[2];                                    // Остатки (remains)
         $productPrice       = preg_replace("/[^x\d|*\.]/", "", $csv[3]);  // цена (price)  удаляем пробелы
         $productNew         = $csv[4];                                    // для формирования блока "Новинки" (new)
@@ -197,7 +197,7 @@ if (file_exists($category_file_original) and file_exists($products_file_original
                 }
                 */
 
-            if (!empty($resourceID)) {
+            if (!empty($resourceID)) { // если товар уже имеется в каталоге, обновляем поля
 
                 //echo $productName . '--' . $resourceID;
 
