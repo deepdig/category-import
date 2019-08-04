@@ -39,10 +39,10 @@ $mainParent = 2; // Основной контейнер каталога
 $dir_image = MODX_BASE_PATH . 'assets/img_katalog/';
 
 // загружаем файл импорта из csv
-$category_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_category.csv'; // имя файла импорта категорий
-$products_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7.csv'; // имя файла импорта товаров
-$category_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_category_finished_' . $data . '.csv'; // имя переименованного файла категорий
-$products_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_7_finished_' . $data . '.csv'; // имя переименованного файла товаров
+$category_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my.csv'; // имя файла импорта категорий
+$products_file_original = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar.csv'; // имя файла импорта товаров
+$category_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_finished_' . $data . '.csv'; // имя переименованного файла категорий
+$products_file = '/home/g/g70573wf/new_sablemarket/public_html/ajax/import/my_tovar_finished_' . $data . '.csv'; // имя переименованного файла товаров
 
 // проверяем наличие файла импорта категорий. если есть - запускаем процесс обновления
 if (file_exists($category_file_original)) {
@@ -244,19 +244,23 @@ if (file_exists($category_file_original) and file_exists($products_file_original
                                 'file' => $file_path, // путь к картинке
                             ];
                             // Вызов процессора загрузки
-                            $response = $modx->runProcessor('gallery/upload', $data, [
+                            /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            ВАЖНО!!! В процессоре обновления картинок у существующих товаров возникает ошибка вызывающая блокировку создания новых ресурсов
+                            $responseImg = $modx->runProcessor('gallery/upload', $data, [
                                 'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
                             ]);
     
                             // Вывод результата работы процессора
-                            if ($response->isError()) {
-                                print_r($response->getAllErrors());
+                            if ($responseImg->isError()) {
+                                print_r($responseImg->getAllErrors());
                             }
+                            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            */
                         }
                     }
                 }
             } else {
-                //echo 'Ресурс отсутствует<br>';
+                echo 'Товар: ' . $productName . ' -- отсутствует в каталоге <br>';
 
                 if ($productParent != '00000000-0000-0000-0000-000000000000') {
                     // ищем родительский каталог для данного товара
@@ -270,8 +274,11 @@ if (file_exists($category_file_original) and file_exists($products_file_original
                     $parentID =   23170; // иначе отправляем в "Разное"  
                 }
 
-                if ($parentID) {
+                if ($parentID and $productName != 'Names') {
+                    //echo $parentID;
+                    
                     $response = $modx->runProcessor('resource/create', array(
+                        'processors_path' => MODX_PROCESSORS_PATH,
                         'template' => 6, // шаблон с товаром
                         'isfolder' => 0, // это не контейнер
                         'published' => 1, // опубликован
@@ -305,6 +312,7 @@ if (file_exists($category_file_original) and file_exists($products_file_original
                         $errorArr = $modx->error->failure($response->getMessage());
                         object2file($errorArr, 'log.txt');
                         file_put_contents('log.txt', PHP_EOL . serialize($errorArr), FILE_APPEND);
+                        print_r($response->getAllErrors());
                     }
                     $modx->cacheManager->refresh(); // очищаем кэш
 
@@ -322,13 +330,13 @@ if (file_exists($category_file_original) and file_exists($products_file_original
                                 'file' => $file_path, // путь к картинке
                             ];
                             // Вызов процессора загрузки
-                            $response = $modx->runProcessor('gallery/upload', $data, [
+                            $responseImg = $modx->runProcessor('gallery/upload', $data, [
                                 'processors_path' => MODX_CORE_PATH . 'components/minishop2/processors/mgr/',
                             ]);
     
                             // Вывод результата работы процессора
-                            if ($response->isError()) {
-                                print_r($response->getAllErrors());
+                            if ($responseImg->isError()) {
+                                print_r($responseImg->getAllErrors());
                             }
                         }
                     }
