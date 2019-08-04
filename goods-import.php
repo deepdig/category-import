@@ -166,11 +166,12 @@ if (file_exists($category_file_original) and file_exists($products_file_original
         $productParent      = $csv[9];                                    // родительский ресурс (GUIDExtParent)
         $productDopCategory = $csv[10];                                   // доп.категории товара (GUIDExtParents)
         $productIDAlso      = $csv[11];                                   // список UID товаров через запятую для формирования вкладки "Вам могут понадобиться" (GUIDExt_also)
-        $vendor             = $csv[12];                                   // фильтр по производителю (Filter1)
-        $filter2            = $csv[13];                                   // (Filter2)
-        $filter3            = $csv[14];                                   // (Filter3)
-        $filter4            = $csv[15];                                   // (Filter4)
-        $filter5            = $csv[16];                                   // (Filter5)
+        $publicProduct      = $csv[12];                                   // столбец Delete_Tovar
+        $vendor             = $csv[13];                                   // фильтр по производителю (Filter1)
+        $filter2            = $csv[14];                                   // (Filter2)
+        $filter3            = $csv[15];                                   // (Filter3)
+        $filter4            = $csv[16];                                   // (Filter4)
+        $filter5            = $csv[17];                                   // (Filter5)
 
         if ($productPrice == 0) {
             $productPrice == 999999; // записываем цену под заказ 999999
@@ -216,6 +217,11 @@ if (file_exists($category_file_original) and file_exists($products_file_original
                 if ($parentID) {
                     // обновляем поля товара
                     $product = $modx->getObject('modResource', $resourceID);
+                    if($publicProduct == true){
+                        $product->set('published', 1);
+                    } else {
+                        $product->set('published', 0);    
+                    }
                     $product->set('parent', $parentID);
                     $product->set('price', $productPrice); // записываем цену
                     $product->set('content', $productContent);
@@ -277,11 +283,17 @@ if (file_exists($category_file_original) and file_exists($products_file_original
                 if ($parentID and $productName != 'Names') {
                     //echo $parentID;
                     
+                    if($publicProduct == true){
+                        $published = 1;
+                    } else {
+                        $published = 0;    
+                    }
+                    
                     $response = $modx->runProcessor('resource/create', array(
                         'processors_path' => MODX_PROCESSORS_PATH,
                         'template' => 6, // шаблон с товаром
                         'isfolder' => 0, // это не контейнер
-                        'published' => 1, // опубликован
+                        'published' => $published, // опубликован
                         'parent' => $parentID,
                         'pagetitle' => $productName,
                         //'alias' => $rows .'-'. translit($productName),
